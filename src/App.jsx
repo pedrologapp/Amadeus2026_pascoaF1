@@ -457,7 +457,7 @@ function App() {
       <section className="hero-section min-h-screen flex items-center justify-center text-white relative">
         <div className="text-center z-10 max-w-4xl mx-auto px-4">
           <h1 className="text-5xl md:text-7xl font-bold mb-6 animate-fade-in">
-            🐣 Festa de Páscoa
+            Festa de Páscoa
           </h1>
           <p className="text-xl md:text-2xl mb-4 opacity-90">
             Celebração Especial — Educação Infantil & Fundamental I
