@@ -30,9 +30,9 @@ import {
 } from 'lucide-react';
 
 // Importando as imagens
-import interiorImage1 from './assets/happy1.jpg';
-import interiorImage2 from './assets/happy2.jpg';
-import jardimImage from './assets/happy3.jpg';
+import interiorImage1 from './assets/happy1.JPG';
+import interiorImage2 from './assets/happy2.JPG';
+import jardimImage from './assets/happy3.JPG';
 
 function App() {
   // ⚙️ CONFIGURAÇÃO — apenas Educação Infantil e Ensino Fundamental I
@@ -51,8 +51,8 @@ function App() {
   // ============================================
   // TAXAS DE ANTECIPAÇÃO
   // ============================================
-  const TAXA_ANTECIPACAO_VISTA = 0.0115;
-  const TAXA_ANTECIPACAO_PARCELADO = 0.016;
+  const TAXA_ANTECIPACAO_VISTA = 0.015;
+  const TAXA_ANTECIPACAO_PARCELADO = 0.02;
 
   const calcularTaxaAntecipacao = (valorBase, numParcelas) => {
     if (numParcelas === 1) {
