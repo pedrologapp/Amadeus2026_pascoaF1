@@ -8,16 +8,15 @@ import { Input } from './components/ui/input';
 import { Label } from './components/ui/label';
 import { supabase } from './supabaseClient';
 
-import { 
-  MapPin, 
-  Clock, 
-  Calendar, 
-  Users, 
-  CreditCard, 
-  FileText, 
-  Phone, 
+import {
+  MapPin,
+  Clock,
+  Calendar,
+  Users,
+  CreditCard,
+  FileText,
+  Phone,
   Mail,
-  Bus,
   Camera,
   Shield,
   Heart,
@@ -25,14 +24,9 @@ import {
   ArrowRight,
   User,
   X,
-  Plus,
-  Minus,
-  UserPlus,
   Utensils,
-  XCircle,
   AlertTriangle,
   Search,
-  Filter
 } from 'lucide-react';
 
 // Importando as imagens
@@ -41,8 +35,18 @@ import interiorImage2 from './assets/happy2.jpg';
 import jardimImage from './assets/happy3.jpg';
 
 function App() {
-  // ⚙️ CONFIGURAÇÃO
-  const SERIES_DISPONIVEIS = ['Grupo IV','Grupo V', 'Maternal(3)', 'Maternalzinho(2)', '1º Ano', '2º Ano', '3º Ano', '4º Ano', '5º Ano','6º Ano','7º Ano','8º Ano','9º Ano'];
+  // ⚙️ CONFIGURAÇÃO — apenas Educação Infantil e Ensino Fundamental I
+  const SERIES_DISPONIVEIS = [
+    'Maternalzinho(2)',
+    'Maternal(3)',
+    'Grupo IV',
+    'Grupo V',
+    '1º Ano',
+    '2º Ano',
+    '3º Ano',
+    '4º Ano',
+    '5º Ano',
+  ];
 
   // ============================================
   // TAXAS DE ANTECIPAÇÃO
@@ -73,12 +77,11 @@ function App() {
     phoneConfirm: '',
     paymentMethod: 'pix',
     installments: 1,
-    ticketQuantity: 1
   });
   const [isProcessing, setIsProcessing] = useState(false);
   const [inscriptionSuccess, setInscriptionSuccess] = useState(false);
   const [paymentUrl, setPaymentUrl] = useState(null);
-  
+
   // Estados para validação de CPF
   const [cpfError, setCpfError] = useState('');
   const [cpfValid, setCpfValid] = useState(false);
@@ -104,14 +107,14 @@ function App() {
     let soma = 0;
     let resto;
     for (let i = 1; i <= 9; i++) {
-      soma += parseInt(cpf.substring(i-1, i)) * (11 - i);
+      soma += parseInt(cpf.substring(i - 1, i)) * (11 - i);
     }
     resto = (soma * 10) % 11;
     if (resto === 10 || resto === 11) resto = 0;
     if (resto !== parseInt(cpf.substring(9, 10))) return false;
     soma = 0;
     for (let i = 1; i <= 10; i++) {
-      soma += parseInt(cpf.substring(i-1, i)) * (12 - i);
+      soma += parseInt(cpf.substring(i - 1, i)) * (12 - i);
     }
     resto = (soma * 10) % 11;
     if (resto === 10 || resto === 11) resto = 0;
@@ -154,18 +157,17 @@ function App() {
       let query = supabase
         .from('alunos')
         .select('*')
-        .ilike('nome_completo', `%${searchTerm}%`);
-      
+        .ilike('nome_completo', `%${searchTerm}%`)
+        .in('serie', SERIES_DISPONIVEIS); // filtra só Infantil e Fund. 1
+
       if (selectedSerie) {
         query = query.eq('serie', selectedSerie);
       }
 
-      const { data, error } = await query
-        .order('nome_completo')
-        .limit(10);
+      const { data, error } = await query.order('nome_completo').limit(10);
 
       if (error) throw error;
-      
+
       setStudentsList(data || []);
       setShowStudentDropdown(data && data.length > 0);
     } catch (error) {
@@ -179,11 +181,11 @@ function App() {
 
   const selectStudent = (student) => {
     setSelectedStudent(student);
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       studentName: student.nome_completo,
       studentGrade: student.serie,
-      studentClass: student.turma
+      studentClass: student.turma,
     }));
     setStudentSearch(student.nome_completo);
     setShowStudentDropdown(false);
@@ -194,14 +196,14 @@ function App() {
     const value = e.target.value;
     setStudentSearch(value);
     searchStudents(value);
-    
+
     if (!value) {
       setSelectedStudent(null);
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
         studentName: '',
         studentGrade: '',
-        studentClass: ''
+        studentClass: '',
       }));
       setShowStudentDropdown(false);
     }
@@ -210,51 +212,41 @@ function App() {
   const clearStudentSelection = () => {
     setSelectedStudent(null);
     setStudentSearch('');
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       studentName: '',
       studentGrade: '',
-      studentClass: ''
+      studentClass: '',
     }));
     setShowStudentDropdown(false);
     setStudentsList([]);
   };
 
   // ============================================
-  // CÁLCULO DE PREÇO - R$ 25,00 POR PESSOA
-  // Até 3x no cartão com juros
+  // CÁLCULO DE PREÇO — R$ 30,00 por aluno
+  // Cartão apenas à vista (1x)
   // ============================================
+  const PRECO_BASE = 30.0;
+
   const calculatePrice = () => {
-    const PRECO_BASE = 25.0;
-    const quantidade = formData.ticketQuantity || 1;
-    let valorBase = PRECO_BASE * quantidade;
-    let valorTotal = valorBase;
-    
+    let valorTotal = PRECO_BASE;
+
     if (formData.paymentMethod === 'credit') {
-      let taxaPercentual = 0;
+      const taxaPercentual = 0.0299;
       const taxaFixa = 0.49;
-      const parcelas = parseInt(formData.installments) || 1;
-      
-      if (parcelas === 1) {
-        taxaPercentual = 0.0299;
-      } else if (parcelas >= 2 && parcelas <= 3) {
-        taxaPercentual = 0.0349;
-      }
-      
-      const taxaCartao = valorBase * taxaPercentual;
-      const taxaAntecipacao = calcularTaxaAntecipacao(valorBase, parcelas);
-      valorTotal = valorBase + taxaCartao + taxaFixa + taxaAntecipacao;
+      const taxaCartao = PRECO_BASE * taxaPercentual;
+      const taxaAntecipacao = calcularTaxaAntecipacao(PRECO_BASE, 1);
+      valorTotal = PRECO_BASE + taxaCartao + taxaFixa + taxaAntecipacao;
     }
-    
-    const valorParcela = valorTotal / (parseInt(formData.installments) || 1);
-    return { valorTotal, valorParcela };
+
+    return { valorTotal };
   };
 
-  const { valorTotal, valorParcela } = calculatePrice();
+  const { valorTotal } = calculatePrice();
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    
+
     if (name === 'cpf') {
       const cpfValue = value
         .replace(/\D/g, '')
@@ -262,10 +254,10 @@ function App() {
         .replace(/(\d{3})(\d)/, '$1.$2')
         .replace(/(\d{3})(\d{1,2})$/, '$1-$2');
 
-      setFormData(prev => ({ ...prev, [name]: cpfValue }));
-      
+      setFormData((prev) => ({ ...prev, [name]: cpfValue }));
+
       const cpfSemMascara = cpfValue.replace(/[^\d]/g, '');
-      
+
       if (cpfSemMascara.length === 0) {
         setCpfError('');
         setCpfValid(false);
@@ -281,19 +273,14 @@ function App() {
           setCpfValid(false);
         }
       }
-
     } else if (name === 'phone') {
       const formatted = formatarTelefone(value);
-      setFormData(prev => ({ ...prev, phone: formatted }));
+      setFormData((prev) => ({ ...prev, phone: formatted }));
       const digits = telDigits(formatted);
 
-      if (!digits) {
-        setPhoneError(''); setPhoneValid(false); return;
-      }
-      if (digits.length < 11) {
-        setPhoneError('Telefone deve ter 11 dígitos com DDD'); setPhoneValid(false); return;
-      }
-      // telefone ok — compara com confirmação se já preenchida
+      if (!digits) { setPhoneError(''); setPhoneValid(false); return; }
+      if (digits.length < 11) { setPhoneError('Telefone deve ter 11 dígitos com DDD'); setPhoneValid(false); return; }
+
       const confirmDigits = telDigits(formData.phoneConfirm);
       if (confirmDigits && confirmDigits !== digits) {
         setPhoneError('Os telefones não coincidem'); setPhoneValid(false);
@@ -302,24 +289,20 @@ function App() {
       } else {
         setPhoneError(''); setPhoneValid(false);
       }
-
     } else if (name === 'phoneConfirm') {
       const formatted = formatarTelefone(value);
-      setFormData(prev => ({ ...prev, phoneConfirm: formatted }));
+      setFormData((prev) => ({ ...prev, phoneConfirm: formatted }));
       const digits = telDigits(formatted);
       const originalDigits = telDigits(formData.phone);
 
-      if (!digits) {
-        setPhoneError(''); setPhoneValid(false); return;
-      }
+      if (!digits) { setPhoneError(''); setPhoneValid(false); return; }
       if (digits !== originalDigits) {
         setPhoneError('Os telefones não coincidem'); setPhoneValid(false);
       } else if (digits.length === 11) {
         setPhoneError(''); setPhoneValid(true);
       }
-
     } else {
-      setFormData(prev => ({ ...prev, [name]: value }));
+      setFormData((prev) => ({ ...prev, [name]: value }));
     }
   };
 
@@ -353,19 +336,15 @@ function App() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    if (!validateForm()) {
-      return;
-    }
-    
+
+    if (!validateForm()) return;
+
     setIsProcessing(true);
 
-    try {  
+    try {
       const response = await fetch('https://webhook.escolaamadeus.com/webhook/amadeuseventos', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           studentName: formData.studentName,
           studentGrade: formData.studentGrade,
@@ -375,27 +354,26 @@ function App() {
           email: formData.email,
           phone: formData.phone,
           paymentMethod: formData.paymentMethod,
-          installments: formData.installments,
-          ticketQuantity: formData.ticketQuantity,
+          installments: 1,
+          ticketQuantity: 1,
           amount: valorTotal,
           timestamp: new Date().toISOString(),
-          event: 'Amadeus-paixaodecristo'
-        })
+          event: 'Amadeus-pascoaF1',
+        }),
       });
 
       if (response.ok) {
         const responseData = await response.json();
         console.log('Resposta do n8n:', responseData);
-        
+
         if (responseData.success === false) {
           alert(responseData.message || 'Erro ao processar dados. Tente novamente.');
           return;
         }
-        
+
         if (responseData.paymentUrl) {
           setPaymentUrl(responseData.paymentUrl);
           setInscriptionSuccess(true);
-          // Tenta redirecionar diretamente (sem setTimeout para não bloquear em Android)
           window.location.href = responseData.paymentUrl;
         } else {
           alert('Erro: Link de pagamento não encontrado. Entre em contato conosco.');
@@ -420,19 +398,19 @@ function App() {
             <div className="mx-auto mb-4 p-3 bg-green-100 rounded-full w-fit">
               <CheckCircle className="h-8 w-8 text-green-600" />
             </div>
-            <CardTitle className="text-green-600">Inscrição Registrada!</CardTitle>
-            <CardDescription>Finalize o pagamento para garantir sua vaga</CardDescription>
+            <CardTitle className="text-green-600">Contribuição Registrada!</CardTitle>
+            <CardDescription>Finalize o pagamento para confirmar a participação</CardDescription>
           </CardHeader>
           <CardContent className="text-center space-y-4">
             <p className="text-sm text-muted-foreground">
-              Seus dados foram registrados com sucesso. Clique no botão abaixo para ir para a página de pagamento.
+              Os dados foram registrados com sucesso. Clique no botão abaixo para ir para a página de pagamento.
             </p>
 
             {paymentUrl && (
               <a
                 href={paymentUrl}
                 className="block w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-6 rounded-lg text-center text-lg transition-colors"
-                style={{textDecoration: 'none'}}
+                style={{ textDecoration: 'none' }}
               >
                 💳 IR PARA O PAGAMENTO
               </a>
@@ -459,6 +437,7 @@ function App() {
 
   return (
     <div className="min-h-screen smooth-scroll">
+      {/* HEADER */}
       <header className="fixed top-0 w-full bg-white/95 backdrop-blur-sm z-50 border-b">
         <nav className="container mx-auto px-4 py-4">
           <div className="flex justify-between items-center">
@@ -466,7 +445,7 @@ function App() {
             <div className="hidden md:flex space-x-6">
               <button onClick={() => scrollToSection('sobre')} className="text-sm hover:text-primary transition-colors">Sobre</button>
               <button onClick={() => scrollToSection('itinerario')} className="text-sm hover:text-primary transition-colors">Informações</button>
-              <button onClick={() => scrollToSection('custos')} className="text-sm hover:text-primary transition-colors">Custos</button>
+              <button onClick={() => scrollToSection('custos')} className="text-sm hover:text-primary transition-colors">Contribuição</button>
               <button onClick={() => scrollToSection('documentacao')} className="text-sm hover:text-primary transition-colors">Importante</button>
               <button onClick={() => scrollToSection('contato')} className="text-sm hover:text-primary transition-colors">Contato</button>
             </div>
@@ -474,86 +453,99 @@ function App() {
         </nav>
       </header>
 
+      {/* HERO */}
       <section className="hero-section min-h-screen flex items-center justify-center text-white relative">
         <div className="text-center z-10 max-w-4xl mx-auto px-4">
           <h1 className="text-5xl md:text-7xl font-bold mb-6 animate-fade-in">
-            Paixão de Cristo
+            🐣 Festa de Páscoa
           </h1>
-          <p className="text-xl md:text-2xl mb-8 opacity-90">
-            Espetáculo Teatral no Centro Educacional Amadeus
+          <p className="text-xl md:text-2xl mb-4 opacity-90">
+            Celebração Especial — Educação Infantil & Fundamental I
+          </p>
+          <p className="text-base md:text-lg mb-8 opacity-80">
+            Lanche fraterno com a turma do CEMEF + Oficina de Chocolate 🍫
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button 
-              size="lg" 
-              variant="outline" 
+            <Button
+              size="lg"
+              variant="outline"
               className="border-white text-white hover:bg-white hover:text-primary px-8 py-3 bg-white text-primary"
-              onClick={() => scrollToSection("sobre")}
+              onClick={() => scrollToSection('sobre')}
             >
               Saiba Mais
             </Button>
           </div>
-          <div className="mt-12 flex justify-center items-center space-x-8 text-sm">
+          <div className="mt-12 flex flex-wrap justify-center items-center gap-6 text-sm">
             <div className="flex items-center">
               <Calendar className="h-5 w-5 mr-2" />
-              <span translate="no">18 de Abril de 2026 (Sábado)</span>
+              <span translate="no">09 de Abril de 2026 (Quinta-feira)</span>
             </div>
             <div className="flex items-center">
               <MapPin className="h-5 w-5 mr-2" />
               Centro Educacional Amadeus
             </div>
+            <div className="flex items-center">
+              <Clock className="h-5 w-5 mr-2" />
+              Horário do turno do aluno
+            </div>
           </div>
         </div>
       </section>
 
+      {/* SOBRE */}
       <section id="sobre" className="section-padding bg-white">
         <div className="container mx-auto max-w-6xl">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold mb-4 gradient-text">Sobre o Evento</h2>
             <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
-              É com grande alegria que anunciamos a encenação da Paixão de Cristo. Este é sempre um 
-              evento emocionante e significativo para nossa comunidade escolar. Teremos a honra de 
-              inaugurar nosso novo Espaço de Eventos climatizado, tornando este momento ainda mais 
-              especial para toda a família Amadeus.
+              Considerando a proximidade da celebração da Páscoa, data de significativo valor formativo,
+              a escola promoverá uma atividade pedagógica com foco nos princípios de <strong>união, solidariedade,
+              renovação e cuidado com o próximo</strong>.
             </p>
           </div>
 
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <div>
-              <h3 className="text-2xl font-semibold mb-6">Uma Experiência Única</h3>
+              <h3 className="text-2xl font-semibold mb-6">Uma Experiência de Partilha</h3>
               <div className="space-y-4">
                 <div className="flex items-start space-x-3">
                   <CheckCircle className="h-6 w-6 text-accent mt-1 flex-shrink-0" />
-                  <p>Encenação da Paixão de Cristo pela nossa comunidade escolar</p>
+                  <p>Momento de integração entre alunos do Amadeus e da <strong>Escola CEMEF (Maria Antônia)</strong></p>
                 </div>
                 <div className="flex items-start space-x-3">
                   <CheckCircle className="h-6 w-6 text-accent mt-1 flex-shrink-0" />
-                  <p>Inauguração do novo Espaço de Eventos climatizado do Amadeus</p>
+                  <p><strong>Lanche coletivo e fraterno</strong>: suco, salgado, pipoca e algodão doce</p>
                 </div>
                 <div className="flex items-start space-x-3">
                   <CheckCircle className="h-6 w-6 text-accent mt-1 flex-shrink-0" />
-                  <p>Aluno que irá se apresentar tem entrada gratuita</p>
+                  <p><strong>Oficina de Chocolate</strong>: cada aluno irá confeccionar sua própria Carinha de Coelho de Chocolate 🐰🍫</p>
                 </div>
                 <div className="flex items-start space-x-3">
                   <CheckCircle className="h-6 w-6 text-accent mt-1 flex-shrink-0" />
-                  <p>A participação da família é fundamental para tornar este momento especial</p>
+                  <p>Atividade lúdica que estimula a <strong>criatividade e a coordenação motora</strong></p>
+                </div>
+                <div className="flex items-start space-x-3">
+                  <CheckCircle className="h-6 w-6 text-accent mt-1 flex-shrink-0" />
+                  <p>Cada aluno <strong>leva para casa</strong> o chocolate produzido por ele</p>
                 </div>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <img src={interiorImage1} alt="Evento escolar" className="rounded-lg shadow-lg h-48 w-full object-cover" />         
-              <img src={interiorImage2} alt="Atividade cultural" className="rounded-lg shadow-lg h-48 w-full object-cover" />    
-              <img src={jardimImage} alt="Espetáculo escolar" className="rounded-lg shadow-lg col-span-2 h-64 w-full object-cover" />
+              <img src={interiorImage1} alt="Evento escolar" className="rounded-lg shadow-lg h-48 w-full object-cover" />
+              <img src={interiorImage2} alt="Atividade cultural" className="rounded-lg shadow-lg h-48 w-full object-cover" />
+              <img src={jardimImage} alt="Celebração escolar" className="rounded-lg shadow-lg col-span-2 h-64 w-full object-cover" />
             </div>
           </div>
         </div>
       </section>
 
+      {/* INFORMAÇÕES */}
       <section id="itinerario" className="section-padding bg-muted/30">
         <div className="container mx-auto max-w-6xl">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold mb-4">Informações do Evento</h2>
             <p className="text-lg text-muted-foreground">
-              Confira todos os detalhes do espetáculo
+              Confira todos os detalhes da celebração de Páscoa
             </p>
           </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -563,17 +555,18 @@ function App() {
                   <Clock className="h-8 w-8 text-primary" />
                 </div>
                 <CardTitle>Data e Horário</CardTitle>
-                <CardDescription translate="no">18 de Abril de 2026</CardDescription>
+                <CardDescription translate="no">09 de Abril de 2026</CardDescription>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-center" translate="no">
-                  Sessões no período da tarde
+                <p className="text-sm text-center font-semibold text-blue-600">
+                  Conforme o turno que o aluno estuda
                 </p>
-                <p className="text-sm text-center font-semibold text-blue-600 mt-2">
-                  O número de sessões dependerá da quantidade de participantes
+                <p className="text-xs text-center text-muted-foreground mt-2">
+                  Quinta-feira
                 </p>
               </CardContent>
             </Card>
+
             <Card className="card-hover">
               <CardHeader className="text-center">
                 <div className="mx-auto mb-4 p-3 bg-accent/10 rounded-full w-fit">
@@ -586,33 +579,35 @@ function App() {
                   Centro Educacional Amadeus
                 </p>
                 <p className="text-xs text-center text-muted-foreground mt-1">
-                  Novo Espaço de Eventos Climatizado
+                  São Gonçalo do Amarante, RN
                 </p>
               </CardContent>
             </Card>
+
             <Card className="card-hover">
               <CardHeader className="text-center">
-                <div className="mx-auto mb-4 p-3 bg-green-100 rounded-full w-fit">
-                  <FileText className="h-8 w-8 text-green-600" />
+                <div className="mx-auto mb-4 p-3 bg-yellow-100 rounded-full w-fit">
+                  <Utensils className="h-8 w-8 text-yellow-600" />
                 </div>
-                <CardTitle>Figurino</CardTitle>
+                <CardTitle>Lanche Coletivo</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-center">
-                  Deve ser providenciado pelo responsável, conforme modelo indicado pelo(a) professor(a)
+                  Suco, salgado, pipoca e algodão doce — compartilhado com os alunos visitantes do CEMEF
                 </p>
               </CardContent>
             </Card>
+
             <Card className="card-hover">
               <CardHeader className="text-center">
-                <div className="mx-auto mb-4 p-3 bg-orange-100 rounded-full w-fit">
-                  <Users className="h-8 w-8 text-orange-600" />
+                <div className="mx-auto mb-4 p-3 bg-pink-100 rounded-full w-fit">
+                  <Heart className="h-8 w-8 text-pink-600" />
                 </div>
-                <CardTitle>Acompanhamento</CardTitle>
+                <CardTitle>Oficina de Chocolate</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-center">
-                  Todos os estudantes devem estar, obrigatoriamente, acompanhados de um responsável
+                  Cada aluno confecciona sua Carinha de Coelho de Chocolate e leva para casa 🐰
                 </p>
               </CardContent>
             </Card>
@@ -620,101 +615,104 @@ function App() {
         </div>
       </section>
 
-      <section id="documentacao" className="section-padding bg-muted/30">
+      {/* IMPORTANTE */}
+      <section id="documentacao" className="section-padding bg-white">
         <div className="container mx-auto max-w-4xl">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold mb-4">IMPORTANTE - LEIA</h2>
+            <h2 className="text-4xl font-bold mb-4">IMPORTANTE — LEIA</h2>
           </div>
 
           <div className="mt-8 p-6 bg-accent/10 rounded-lg border border-accent/20">
             <div className="space-y-4">
               <div className="flex items-start space-x-3">
                 <div className="w-2 h-2 bg-accent rounded-full mt-2 flex-shrink-0"></div>
-                <div>
-                  <p className="text-sm">
-                    O espetáculo acontecerá no dia <span translate="no">18/04</span>, no <strong>período da tarde</strong>. O número de sessões será definido conforme a quantidade de participantes confirmados.
-                  </p>
-                </div>
+                <p className="text-sm">
+                  O evento acontecerá no dia <span translate="no"><strong>09/04/2026 (quinta-feira)</strong></span>,
+                  no <strong>horário do turno que o aluno estuda</strong>.
+                </p>
               </div>
               <div className="flex items-start space-x-3">
                 <div className="w-2 h-2 bg-accent rounded-full mt-2 flex-shrink-0"></div>
-                <div>
-                  <p className="text-sm">
-                    O <strong>FIGURINO</strong> deve ser providenciado pelo responsável. O modelo deve ser consultado diretamente com o(a) professor(a).
-                  </p>
-                </div>
+                <p className="text-sm">
+                  <strong>Nesta data não haverá aula regular</strong> — a programação será exclusivamente a celebração de Páscoa.
+                </p>
               </div>
               <div className="flex items-start space-x-3">
                 <div className="w-2 h-2 bg-accent rounded-full mt-2 flex-shrink-0"></div>
-                <div>
-                  <p className="text-sm">
-                    No dia da apresentação, todos os estudantes devem estar <strong>obrigatoriamente acompanhados de um responsável</strong>.
-                  </p>
-                </div>
+                <p className="text-sm">
+                  O aluno deverá vir com seu <strong>fardamento completo</strong> e trazer sua <strong>garrafinha com água</strong>.
+                </p>
               </div>
               <div className="flex items-start space-x-3">
                 <div className="w-2 h-2 bg-accent rounded-full mt-2 flex-shrink-0"></div>
-                <div>
-                  <p className="text-sm">
-                    O aluno que irá se <strong>apresentar no espetáculo terá entrada gratuita</strong>. Os demais acompanhantes pagam R$ 25,00 por pessoa.
-                  </p>
-                </div>
+                <p className="text-sm">
+                  A contribuição de <strong>R$ 30,00 por aluno</strong> é destinada ao lanche coletivo (suco, salgado, pipoca e algodão doce)
+                  que será compartilhado com os alunos visitantes do CEMEF.
+                </p>
               </div>
               <div className="flex items-start space-x-3">
                 <div className="w-2 h-2 bg-accent rounded-full mt-2 flex-shrink-0"></div>
-                <div>
-                  <p className="text-sm">
-                    Os valores arrecadados serão destinados ao custeio de <strong>som, ornamentação, aluguel de cadeiras e demais despesas organizacionais</strong>.
-                  </p>
-                </div>
+                <p className="text-sm">
+                  Na <strong>Oficina de Chocolate</strong>, cada aluno irá confeccionar uma Carinha de Coelho de Chocolate de forma lúdica,
+                  estimulando a criatividade e a coordenação motora, e receberá o chocolate produzido por ele.
+                </p>
               </div>
               <div className="flex items-start space-x-3">
                 <div className="w-2 h-2 bg-red-500 rounded-full mt-2 flex-shrink-0"></div>
-                <div>
-                  <p className="text-sm text-red-700 font-semibold">
-                    Fiquem atentos aos nossos canais de comunicação para atualizações sobre ensaios e horários.
-                  </p>
-                </div>
-              </div>  
+                <p className="text-sm text-red-700 font-semibold">
+                  ⚠️ PRAZO PARA PAGAMENTO: ATÉ 06 DE ABRIL DE 2026
+                </p>
+              </div>
+              <div className="flex items-start space-x-3">
+                <div className="w-2 h-2 bg-red-500 rounded-full mt-2 flex-shrink-0"></div>
+                <p className="text-sm text-red-700 font-semibold">
+                  Após o pagamento, não será permitido o reembolso.
+                </p>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      <section id="custos" className="section-padding bg-white">
+      {/* CONTRIBUIÇÃO E FORMULÁRIO */}
+      <section id="custos" className="section-padding bg-muted/30">
         <div className="container mx-auto max-w-4xl">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold mb-4">Inscrição e Pagamento</h2>
+            <h2 className="text-4xl font-bold mb-4">Contribuição</h2>
             <p className="text-lg text-muted-foreground">
-              Valor por pessoa — aluno que se apresenta tem entrada gratuita
+              Valor por aluno — garanta a participação do seu filho(a)
             </p>
           </div>
 
           <Card className="mb-8">
             <CardHeader className="text-center">
-              <CardTitle className="text-3xl text-primary" translate="no">R$ 25,00</CardTitle>
-              <CardDescription>por PESSOA</CardDescription>
+              <CardTitle className="text-3xl text-primary" translate="no">R$ 30,00</CardTitle>
+              <CardDescription>por ALUNO</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid md:grid-cols-2 gap-6">
                 <div>
-                  <h4 className="font-semibold mb-3 text-accent">Destinação dos valores:</h4>
+                  <h4 className="font-semibold mb-3 text-accent">Destinação da contribuição:</h4>
                   <ul className="space-y-2 text-sm">
                     <li className="flex items-center">
                       <CheckCircle className="h-4 w-4 text-accent mr-2" />
-                      Som e equipamentos
+                      Suco
                     </li>
                     <li className="flex items-center">
                       <CheckCircle className="h-4 w-4 text-accent mr-2" />
-                      Ornamentação do espaço
+                      Salgado
                     </li>
                     <li className="flex items-center">
                       <CheckCircle className="h-4 w-4 text-accent mr-2" />
-                      Aluguel de cadeiras
+                      Pipoca
                     </li>
                     <li className="flex items-center">
                       <CheckCircle className="h-4 w-4 text-accent mr-2" />
-                      Demais despesas organizacionais
+                      Algodão doce
+                    </li>
+                    <li className="flex items-center">
+                      <CheckCircle className="h-4 w-4 text-accent mr-2" />
+                      Materiais da Oficina de Chocolate 🍫
                     </li>
                   </ul>
                 </div>
@@ -723,15 +721,15 @@ function App() {
                   <ul className="space-y-2 text-sm">
                     <li className="flex items-start">
                       <Shield className="h-4 w-4 text-destructive mr-2 mt-0.5" />
-                      <span>O aluno que se apresenta tem entrada gratuita</span>
+                      <span>Contribuição de R$ 30,00 por aluno</span>
                     </li>
                     <li className="flex items-start">
                       <Shield className="h-4 w-4 text-destructive mr-2 mt-0.5" />
-                      Ingressos extras disponíveis pelo mesmo valor (R$ 25,00)
+                      <span>Pagamento via PIX (sem taxas) ou cartão de crédito (com taxas)</span>
                     </li>
                     <li className="flex items-start">
                       <Shield className="h-4 w-4 text-destructive mr-2 mt-0.5" />
-                      Parcelamento em até 3x no cartão (com juros)
+                      <span translate="no"><strong>Prazo: até 06/04/2026</strong></span>
                     </li>
                     <li className="flex items-start">
                       <Shield className="h-4 w-4 text-destructive mr-2 mt-0.5" />
@@ -740,22 +738,22 @@ function App() {
                   </ul>
                 </div>
               </div>
-              
+
               <Separator className="my-6" />
-              
+
               <div className="text-center">
                 {!showForm ? (
-                  <Button 
-                    size="lg" 
+                  <Button
+                    size="lg"
                     className="bg-orange-600 hover:bg-orange-700 px-8 py-3"
                     onClick={showInscricaoForm}
                   >
-                    Realizar Inscrição e Pagamento
+                    Realizar Contribuição
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </Button>
                 ) : (
-                  <Button 
-                    size="lg" 
+                  <Button
+                    size="lg"
                     variant="outline"
                     className="px-8 py-3"
                     onClick={() => setShowForm(false)}
@@ -765,34 +763,36 @@ function App() {
                   </Button>
                 )}
                 <p className="text-xs text-muted-foreground mt-2">
-                  {!showForm ? 'Preencha seus dados e escolha a forma de pagamento' : 'Clique acima para fechar o formulário'}
+                  {!showForm
+                    ? 'Preencha os dados do aluno e escolha a forma de pagamento'
+                    : 'Clique acima para fechar o formulário'}
                 </p>
               </div>
             </CardContent>
           </Card>
 
-          {/* FORMULÁRIO DE INSCRIÇÃO */}
+          {/* FORMULÁRIO */}
           {showForm && (
             <Card id="formulario-inscricao" className="border-orange-200 bg-orange-50/30">
               <CardHeader>
                 <CardTitle className="flex items-center text-orange-800">
                   <User className="mr-2 h-5 w-5" />
-                  Formulário de Inscrição
+                  Formulário de Contribuição
                 </CardTitle>
                 <CardDescription>
-                  Preencha todos os dados para garantir a participação do aluno
+                  Preencha todos os dados para confirmar a participação do aluno
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleSubmit} className="space-y-6">
-                  
+
                   {/* BUSCA DE ALUNO */}
                   <div>
                     <h3 className="text-lg font-semibold mb-4 flex items-center">
                       <Search className="mr-2 h-5 w-5" />
                       Buscar Aluno
                     </h3>
-                    
+
                     <div className="space-y-4">
                       <div className="relative">
                         <Label htmlFor="studentSearch">Digite o nome do aluno *</Label>
@@ -807,13 +807,13 @@ function App() {
                           autoComplete="off"
                           className={selectedStudent ? 'border-green-500 bg-green-50' : ''}
                         />
-                        
+
                         {isSearching && (
                           <div className="absolute right-3 top-9">
                             <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
                           </div>
                         )}
-                        
+
                         {selectedStudent && (
                           <div className="mt-2 p-3 bg-green-100 rounded border border-green-300 flex items-center justify-between">
                             <div>
@@ -880,7 +880,7 @@ function App() {
                             value={formData.studentGrade}
                             disabled
                             className="bg-gray-100 cursor-not-allowed"
-                            placeholder="Será preenchido automaticamente"
+                            placeholder="Preenchido automaticamente"
                           />
                         </div>
                         <div>
@@ -891,7 +891,7 @@ function App() {
                             value={formData.studentClass}
                             disabled
                             className="bg-gray-100 cursor-not-allowed"
-                            placeholder="Será preenchido automaticamente"
+                            placeholder="Preenchido automaticamente"
                           />
                         </div>
                       </div>
@@ -917,13 +917,11 @@ function App() {
                         />
                       </div>
 
-                      {/* ================================================ */}
-                      {/* TELEFONE COM CONFIRMAÇÃO                          */}
-                      {/* ================================================ */}
+                      {/* TELEFONE COM CONFIRMAÇÃO */}
                       <div className="p-4 rounded-lg border-2 border-blue-200 bg-blue-50 space-y-3">
                         <p className="text-sm font-semibold text-blue-800 flex items-center">
                           <Phone className="h-4 w-4 mr-2 flex-shrink-0" />
-                          📲 O QR Code do ingresso será enviado para este WhatsApp — digite com atenção!
+                          📲 O comprovante de pagamento será enviado para este WhatsApp — digite com atenção!
                         </p>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div>
@@ -972,7 +970,8 @@ function App() {
                         )}
                         {phoneValid && (
                           <p className="text-green-700 text-sm font-medium flex items-center">
-                            ✅ WhatsApp confirmado! O QR Code será enviado para <strong className="ml-1">{formData.phone}</strong>
+                            ✅ WhatsApp confirmado! O comprovante será enviado para{' '}
+                            <strong className="ml-1">{formData.phone}</strong>
                           </p>
                         )}
                       </div>
@@ -1001,10 +1000,10 @@ function App() {
                             placeholder="000.000.000-00"
                             maxLength="14"
                             className={`${
-                              formData.cpf && cpfError 
-                                ? 'border-red-500 bg-red-50' 
-                                : formData.cpf && cpfValid 
-                                ? 'border-green-500 bg-green-50' 
+                              formData.cpf && cpfError
+                                ? 'border-red-500 bg-red-50'
+                                : formData.cpf && cpfValid
+                                ? 'border-green-500 bg-green-50'
                                 : ''
                             }`}
                           />
@@ -1025,164 +1024,99 @@ function App() {
                     </div>
                   </div>
 
-                  {/* Quantidade de Senhas */}
-                  <div>
-                    <h3 className="text-lg font-semibold mb-1 flex items-center">
-                      <Users className="mr-2 h-5 w-5" />
-                      Quantidade de Senhas (Espectadores)
-                    </h3>
-                    <p className="text-sm text-muted-foreground mb-4">
-                      O aluno que se apresenta <strong>não precisa de senha</strong>. Adquira senhas apenas para quem irá <strong>assistir</strong> ao espetáculo (R$ 25,00 por pessoa).
-                    </p>
-
-                    <div className="flex items-center justify-between bg-orange-50 border border-orange-200 rounded-lg p-4">
-                      <div>
-                        <p className="font-medium text-sm">Senhas para assistir</p>
-                        <p className="text-xs text-muted-foreground">R$ 25,00 por pessoa</p>
-                      </div>
-                      <div className="flex items-center space-x-3">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          className="h-8 w-8 p-0 rounded-full border-orange-400 text-orange-600 hover:bg-orange-100"
-                          onClick={() => setFormData(prev => ({ ...prev, ticketQuantity: Math.max(1, prev.ticketQuantity - 1), installments: 1 }))}
-                          disabled={formData.ticketQuantity <= 1}
-                        >
-                          <Minus className="h-4 w-4" />
-                        </Button>
-                        <span className="text-xl font-bold w-8 text-center text-orange-800">
-                          {formData.ticketQuantity}
-                        </span>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          className="h-8 w-8 p-0 rounded-full border-orange-400 text-orange-600 hover:bg-orange-100"
-                          onClick={() => setFormData(prev => ({ ...prev, ticketQuantity: prev.ticketQuantity + 1, installments: 1 }))}
-                        >
-                          <Plus className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-
                   {/* Método de Pagamento */}
                   <div>
-                    <h3 className="text-lg font-semibold mb-4">Método de Pagamento*</h3>
-                    
+                    <h3 className="text-lg font-semibold mb-4">Método de Pagamento *</h3>
+
                     <div className="space-y-3 mb-6">
-                      <div 
+                      {/* PIX */}
+                      <div
                         className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
-                          formData.paymentMethod === 'pix' 
-                            ? 'border-orange-400 bg-orange-50' 
+                          formData.paymentMethod === 'pix'
+                            ? 'border-orange-400 bg-orange-50'
                             : 'border-gray-200 hover:border-gray-300'
                         }`}
-                        onClick={() => setFormData(prev => ({ ...prev, paymentMethod: 'pix', installments: 1 }))}
+                        onClick={() => setFormData((prev) => ({ ...prev, paymentMethod: 'pix', installments: 1 }))}
                       >
                         <div className="flex items-center">
-                          <div className={`w-4 h-4 rounded-full border-2 mr-3 ${
-                            formData.paymentMethod === 'pix' ? 'border-orange-400 bg-orange-400' : 'border-gray-300'
-                          }`}>
-                            {formData.paymentMethod === 'pix' && (
-                              <div className="w-full h-full rounded-full bg-orange-400"></div>
-                            )}
-                          </div>
+                          <div
+                            className={`w-4 h-4 rounded-full border-2 mr-3 ${
+                              formData.paymentMethod === 'pix'
+                                ? 'border-orange-400 bg-orange-400'
+                                : 'border-gray-300'
+                            }`}
+                          />
                           <div className="flex items-center space-x-2">
                             <span className="text-lg font-bold">PIX</span>
                             <span className="text-sm" translate="no">
-                              R$ {(25 * formData.ticketQuantity).toFixed(2).replace('.', ',')} (sem taxas)
+                              R$ 30,00 (sem taxas)
                             </span>
                           </div>
                         </div>
                       </div>
 
-                      <div 
+                      {/* CARTÃO */}
+                      <div
                         className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
-                          formData.paymentMethod === 'credit' 
-                            ? 'border-orange-400 bg-orange-50' 
+                          formData.paymentMethod === 'credit'
+                            ? 'border-orange-400 bg-orange-50'
                             : 'border-gray-200 hover:border-gray-300'
                         }`}
-                        onClick={() => setFormData(prev => ({ ...prev, paymentMethod: 'credit' }))}
+                        onClick={() => setFormData((prev) => ({ ...prev, paymentMethod: 'credit', installments: 1 }))}
                       >
                         <div className="flex items-center">
-                          <div className={`w-4 h-4 rounded-full border-2 mr-3 ${
-                            formData.paymentMethod === 'credit' ? 'border-orange-400 bg-orange-400' : 'border-gray-300'
-                          }`}>
-                            {formData.paymentMethod === 'credit' && (
-                              <div className="w-full h-full rounded-full bg-orange-400"></div>
-                            )}
-                          </div>
+                          <div
+                            className={`w-4 h-4 rounded-full border-2 mr-3 ${
+                              formData.paymentMethod === 'credit'
+                                ? 'border-orange-400 bg-orange-400'
+                                : 'border-gray-300'
+                            }`}
+                          />
                           <div>
                             <div className="flex items-center space-x-2">
                               <span className="text-sm">💳</span>
                               <span className="text-sm font-medium">Cartão de Crédito</span>
                             </div>
-                            <div className="text-xs text-green-600 ml-6 font-medium">
-                              Parcele em até 3x (com juros)
+                            <div className="text-xs text-orange-600 ml-6 font-medium">
+                              À vista (com taxas do cartão)
                             </div>
                           </div>
                         </div>
                       </div>
                     </div>
-
-                    {formData.paymentMethod === 'credit' && (
-                      <div className="mb-6">
-                        <Label className="text-sm font-medium">Número de Parcelas</Label>
-                        <select
-                          value={formData.installments}
-                          onChange={(e) => setFormData(prev => ({ ...prev, installments: parseInt(e.target.value) }))}
-                          className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm mt-2"
-                        >
-                          <option value={1}>1x de R$ {valorTotal.toFixed(2).replace('.', ',')}</option>
-                          <option value={2}>2x de R$ {(valorTotal / 2).toFixed(2).replace('.', ',')}</option>
-                          <option value={3}>3x de R$ {(valorTotal / 3).toFixed(2).replace('.', ',')}</option>
-                        </select>
-                        <p className="text-xs text-gray-500 mt-1">
-                          * Taxas de cartão aplicadas ao valor total
-                        </p>
-                      </div>
-                    )}
 
                     {/* Valor Total */}
                     <div className="bg-orange-100 p-4 rounded-lg border border-orange-200">
                       <div className="text-center" translate="no">
                         <h4 className="text-lg font-bold text-orange-800 mb-1">Valor Total</h4>
                         <div className="text-sm text-gray-600 mb-1">
-                          {formData.ticketQuantity} {formData.ticketQuantity === 1 ? 'senha' : 'senhas'} × R$ 25,00
+                          Contribuição por aluno
                           {formData.paymentMethod === 'credit' && ' + taxas do cartão'}
                         </div>
                         <div className="text-2xl font-bold text-orange-900">
                           R$ {valorTotal.toFixed(2).replace('.', ',')}
                         </div>
-                        {formData.paymentMethod === 'credit' && formData.installments > 1 && (
-                          <div className="text-sm text-orange-700 mt-1">
-                            {formData.installments}x de R$ {valorParcela.toFixed(2).replace('.', ',')}
-                          </div>
-                        )}
                         {formData.paymentMethod === 'credit' && (
-                          <div className="text-xs text-orange-600 mt-1">
-                            (inclui taxas do cartão)
-                          </div>
+                          <div className="text-xs text-orange-600 mt-1">(inclui taxas do cartão)</div>
                         )}
                         <div className="mt-2 pt-2 border-t border-orange-300 text-xs text-orange-700 flex items-center justify-center">
                           <CheckCircle className="h-3 w-3 mr-1" />
-                          Aluno que se apresenta: entrada gratuita (não incluído)
+                          <span translate="no">Prazo para pagamento: até 06/04/2026</span>
                         </div>
                       </div>
                     </div>
                   </div>
 
                   {/* Botão de Envio */}
-                  <Button 
-                    type="submit" 
+                  <Button
+                    type="submit"
                     className="w-full bg-orange-600 hover:bg-orange-700 text-white py-6 text-lg font-bold"
                     disabled={isProcessing || !selectedStudent || !phoneValid}
                   >
                     {isProcessing ? (
                       <>
                         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                        Processando Inscrição...
+                        Processando...
                       </>
                     ) : (
                       'CONTINUAR PARA PAGAMENTO'
@@ -1205,13 +1139,12 @@ function App() {
         </div>
       </section>
 
-      <section id="contato" className="section-padding bg-muted/30">
+      {/* CONTATO */}
+      <section id="contato" className="section-padding bg-white">
         <div className="container mx-auto max-w-4xl">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold mb-4">Entre em Contato</h2>
-            <p className="text-lg text-muted-foreground">
-              Tire suas dúvidas conosco
-            </p>
+            <p className="text-lg text-muted-foreground">Tire suas dúvidas conosco</p>
           </div>
 
           <div className="grid md:grid-cols-2 gap-8">
@@ -1233,22 +1166,25 @@ function App() {
               </CardContent>
             </Card>
           </div>
+
           <div className="mt-8 text-center">
             <p className="text-sm text-muted-foreground">
-              <strong>Coordenação Pedagógica</strong><br />
-              Escola Centro Educacional Amadeus - São Gonçalo do Amarante, RN
+              <strong>Direção Pedagógica e Coordenação</strong>
+              <br />
+              Escola Centro Educacional Amadeus — São Gonçalo do Amarante, RN
             </p>
           </div>
         </div>
       </section>
 
+      {/* FOOTER */}
       <footer className="bg-blue-900 text-white py-8">
         <div className="container mx-auto px-4 text-center">
           <p className="text-sm">
             © 2026 Escola Centro Educacional Amadeus. Todos os direitos reservados.
           </p>
           <p className="text-xs mt-2 opacity-80" translate="no">
-            Paixão de Cristo - Centro Educacional Amadeus - 18 de Abril de 2026
+            Festa de Páscoa — Centro Educacional Amadeus — 09 de Abril de 2026
           </p>
         </div>
       </footer>
@@ -1256,4 +1192,5 @@ function App() {
   );
 }
 
+export default App;
 export default App;
