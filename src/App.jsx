@@ -342,7 +342,7 @@ function App() {
     setIsProcessing(true);
 
     try {
-      const response = await fetch('https://webhook.escolaamadeus.com/webhook/amadeus-pascoaF1', {
+      const response = await fetch('https://webhook.escolaamadeus.com/webhook/amadeuseventos', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -358,7 +358,7 @@ function App() {
           ticketQuantity: 1,
           amount: valorTotal,
           timestamp: new Date().toISOString(),
-          event: 'Amadeus-pascoa',
+          event: 'Amadeus-pascoaF1',
         }),
       });
 
