@@ -342,7 +342,7 @@ function App() {
     setIsProcessing(true);
 
     try {
-      const response = await fetch('https://webhook.escolaamadeus.com/webhook/amadeuseventos', {
+      const response = await fetch('https://webhook.escolaamadeus.com/webhook/amadeus-pascoaF1', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -358,7 +358,7 @@ function App() {
           ticketQuantity: 1,
           amount: valorTotal,
           timestamp: new Date().toISOString(),
-          event: 'Amadeus-pascoaF1',
+          event: 'Amadeus-pascoa',
         }),
       });
 
@@ -398,7 +398,7 @@ function App() {
             <div className="mx-auto mb-4 p-3 bg-green-100 rounded-full w-fit">
               <CheckCircle className="h-8 w-8 text-green-600" />
             </div>
-            <CardTitle className="text-green-600">Contribuição Registrada!</CardTitle>
+            <CardTitle className="text-green-600">Pagamento Registrado!</CardTitle>
             <CardDescription>Finalize o pagamento para confirmar a participação</CardDescription>
           </CardHeader>
           <CardContent className="text-center space-y-4">
@@ -445,7 +445,7 @@ function App() {
             <div className="hidden md:flex space-x-6">
               <button onClick={() => scrollToSection('sobre')} className="text-sm hover:text-primary transition-colors">Sobre</button>
               <button onClick={() => scrollToSection('itinerario')} className="text-sm hover:text-primary transition-colors">Informações</button>
-              <button onClick={() => scrollToSection('custos')} className="text-sm hover:text-primary transition-colors">Contribuição</button>
+              <button onClick={() => scrollToSection('custos')} className="text-sm hover:text-primary transition-colors">Taxa de participação</button>
               <button onClick={() => scrollToSection('documentacao')} className="text-sm hover:text-primary transition-colors">Importante</button>
               <button onClick={() => scrollToSection('contato')} className="text-sm hover:text-primary transition-colors">Contato</button>
             </div>
@@ -646,7 +646,7 @@ function App() {
               <div className="flex items-start space-x-3">
                 <div className="w-2 h-2 bg-accent rounded-full mt-2 flex-shrink-0"></div>
                 <p className="text-sm">
-                  A contribuição de <strong>R$ 30,00 por aluno</strong> é destinada ao lanche coletivo (suco, salgado, pipoca e algodão doce)
+                  A taxa de participação de <strong>R$ 30,00 por aluno</strong> é destinada ao lanche coletivo (suco, salgado, pipoca e algodão doce)
                   que será compartilhado com os alunos visitantes do CEMEF.
                 </p>
               </div>
@@ -678,7 +678,7 @@ function App() {
       <section id="custos" className="section-padding bg-muted/30">
         <div className="container mx-auto max-w-4xl">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold mb-4">Contribuição</h2>
+            <h2 className="text-4xl font-bold mb-4">Taxa de participação</h2>
             <p className="text-lg text-muted-foreground">
               Valor por aluno — garanta a participação do seu filho(a)
             </p>
@@ -692,7 +692,7 @@ function App() {
             <CardContent>
               <div className="grid md:grid-cols-2 gap-6">
                 <div>
-                  <h4 className="font-semibold mb-3 text-accent">Destinação da contribuição:</h4>
+                  <h4 className="font-semibold mb-3 text-accent">Destinação da taxa de participação:</h4>
                   <ul className="space-y-2 text-sm">
                     <li className="flex items-center">
                       <CheckCircle className="h-4 w-4 text-accent mr-2" />
@@ -721,7 +721,7 @@ function App() {
                   <ul className="space-y-2 text-sm">
                     <li className="flex items-start">
                       <Shield className="h-4 w-4 text-destructive mr-2 mt-0.5" />
-                      <span>Contribuição de R$ 30,00 por aluno</span>
+                      <span>Taxa de participação de R$ 30,00 por aluno</span>
                     </li>
                     <li className="flex items-start">
                       <Shield className="h-4 w-4 text-destructive mr-2 mt-0.5" />
@@ -748,7 +748,7 @@ function App() {
                     className="bg-orange-600 hover:bg-orange-700 px-8 py-3"
                     onClick={showInscricaoForm}
                   >
-                    Realizar Contribuição
+                    Realizar Pagamento da Taxa
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </Button>
                 ) : (
@@ -777,7 +777,7 @@ function App() {
               <CardHeader>
                 <CardTitle className="flex items-center text-orange-800">
                   <User className="mr-2 h-5 w-5" />
-                  Formulário de Contribuição
+                  Formulário de Inscrição
                 </CardTitle>
                 <CardDescription>
                   Preencha todos os dados para confirmar a participação do aluno
@@ -1090,7 +1090,7 @@ function App() {
                       <div className="text-center" translate="no">
                         <h4 className="text-lg font-bold text-orange-800 mb-1">Valor Total</h4>
                         <div className="text-sm text-gray-600 mb-1">
-                          Contribuição por aluno
+                          Taxa de participação por aluno
                           {formData.paymentMethod === 'credit' && ' + taxas do cartão'}
                         </div>
                         <div className="text-2xl font-bold text-orange-900">
