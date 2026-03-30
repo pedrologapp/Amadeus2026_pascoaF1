@@ -51,8 +51,8 @@ function App() {
   // ============================================
   // TAXAS DE ANTECIPAÇÃO
   // ============================================
-  const TAXA_ANTECIPACAO_VISTA = 0.015;
-  const TAXA_ANTECIPACAO_PARCELADO = 0.02;
+  const TAXA_ANTECIPACAO_VISTA = 0.025;
+  const TAXA_ANTECIPACAO_PARCELADO = 0.03;
 
   const calcularTaxaAntecipacao = (valorBase, numParcelas) => {
     if (numParcelas === 1) {
@@ -234,7 +234,7 @@ function App() {
 
     if (formData.paymentMethod === 'credit') {
       // Taxa percentual: 1x = 2,99% | 2x = 3,49%
-      const taxaPercentual = numParcelas === 1 ? 0.0299 : 0.0349;
+      const taxaPercentual = numParcelas === 1 ? 0.0399 : 0.0449;
       const taxaFixa = 0.49;
       const taxaCartao = PRECO_BASE * taxaPercentual;
       const taxaAntecipacao = calcularTaxaAntecipacao(PRECO_BASE, numParcelas);
