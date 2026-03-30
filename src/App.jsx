@@ -526,7 +526,7 @@ function App() {
                 </div>
                 <div className="flex items-start space-x-3">
                   <CheckCircle className="h-6 w-6 text-accent mt-1 flex-shrink-0" />
-                  <p>Cada aluno <strong>leva para casa</strong> o chocolate produzido por ele</p>
+                  <p>Cada aluno <strong>leva para casa</strong> o chocolate produzido por si mesmo</p>
                 </div>
               </div>
             </div>
@@ -654,7 +654,7 @@ function App() {
                 <div className="w-2 h-2 bg-accent rounded-full mt-2 flex-shrink-0"></div>
                 <p className="text-sm">
                   Na <strong>Oficina de Chocolate</strong>, cada aluno irá confeccionar uma Carinha de Coelho de Chocolate de forma lúdica,
-                  estimulando a criatividade e a coordenação motora, e receberá o chocolate produzido por ele.
+                  estimulando a criatividade e a coordenação motora, e receberá o chocolate produzido por si mesmo.
                 </p>
               </div>
               <div className="flex items-start space-x-3">
