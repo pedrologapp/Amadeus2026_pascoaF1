@@ -158,7 +158,7 @@ function App() {
         .from('alunos')
         .select('*')
         .ilike('nome_completo', `%${searchTerm}%`)
-        .in('serie', SERIES_DISPONIVEIS); // filtra só Infantil e Fund. 1
+        .in('serie', SERIES_DISPONIVEIS);
 
       if (selectedSerie) {
         query = query.eq('serie', selectedSerie);
@@ -224,25 +224,28 @@ function App() {
 
   // ============================================
   // CÁLCULO DE PREÇO — R$ 30,00 por aluno
-  // Cartão apenas à vista (1x)
+  // Cartão: à vista (1x) ou parcelado em 2x (com juros)
   // ============================================
   const PRECO_BASE = 30.0;
 
-  const calculatePrice = () => {
+  const calculatePrice = (parcelas = null) => {
+    const numParcelas = parcelas ?? (parseInt(formData.installments) || 1);
     let valorTotal = PRECO_BASE;
 
     if (formData.paymentMethod === 'credit') {
-      const taxaPercentual = 0.0299;
+      // Taxa percentual: 1x = 2,99% | 2x = 3,49%
+      const taxaPercentual = numParcelas === 1 ? 0.0299 : 0.0349;
       const taxaFixa = 0.49;
       const taxaCartao = PRECO_BASE * taxaPercentual;
-      const taxaAntecipacao = calcularTaxaAntecipacao(PRECO_BASE, 1);
+      const taxaAntecipacao = calcularTaxaAntecipacao(PRECO_BASE, numParcelas);
       valorTotal = PRECO_BASE + taxaCartao + taxaFixa + taxaAntecipacao;
     }
 
-    return { valorTotal };
+    const valorParcela = valorTotal / numParcelas;
+    return { valorTotal, valorParcela };
   };
 
-  const { valorTotal } = calculatePrice();
+  const { valorTotal, valorParcela } = calculatePrice();
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -342,7 +345,7 @@ function App() {
     setIsProcessing(true);
 
     try {
-      const response = await fetch('https://webhook.escolaamadeus.com/webhook/amadeuseventos', {
+      const response = await fetch('https://webhook.escolaamadeus.com/webhook/amadeus-pascoaF1', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -354,7 +357,7 @@ function App() {
           email: formData.email,
           phone: formData.phone,
           paymentMethod: formData.paymentMethod,
-          installments: 1,
+          installments: formData.installments,   // ← envia o valor real (1 ou 2)
           ticketQuantity: 1,
           amount: valorTotal,
           timestamp: new Date().toISOString(),
@@ -674,7 +677,7 @@ function App() {
         </div>
       </section>
 
-      {/* CONTRIBUIÇÃO E FORMULÁRIO */}
+      {/* TAXA DE PARTICIPAÇÃO E FORMULÁRIO */}
       <section id="custos" className="section-padding bg-muted/30">
         <div className="container mx-auto max-w-4xl">
           <div className="text-center mb-16">
@@ -725,7 +728,7 @@ function App() {
                     </li>
                     <li className="flex items-start">
                       <Shield className="h-4 w-4 text-destructive mr-2 mt-0.5" />
-                      <span>Pagamento via PIX (sem taxas) ou cartão de crédito (com taxas)</span>
+                      <span>Pagamento via PIX (sem taxas) ou cartão de crédito em até 2x (com juros)</span>
                     </li>
                     <li className="flex items-start">
                       <Shield className="h-4 w-4 text-destructive mr-2 mt-0.5" />
@@ -1077,13 +1080,37 @@ function App() {
                               <span className="text-sm">💳</span>
                               <span className="text-sm font-medium">Cartão de Crédito</span>
                             </div>
-                            <div className="text-xs text-orange-600 ml-6 font-medium">
-                              À vista (com taxas do cartão)
+                            <div className="text-xs text-green-600 ml-6 font-medium">
+                              Parcele em até 2x (com juros)
                             </div>
                           </div>
                         </div>
                       </div>
                     </div>
+
+                    {/* SELETOR DE PARCELAS — aparece só no cartão */}
+                    {formData.paymentMethod === 'credit' && (
+                      <div className="mb-6">
+                        <Label className="text-sm font-medium">Número de Parcelas</Label>
+                        <select
+                          value={formData.installments}
+                          onChange={(e) =>
+                            setFormData((prev) => ({ ...prev, installments: parseInt(e.target.value) }))
+                          }
+                          className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm mt-2"
+                        >
+                          <option value={1}>
+                            1x de R$ {calculatePrice(1).valorTotal.toFixed(2).replace('.', ',')} (à vista)
+                          </option>
+                          <option value={2}>
+                            2x de R$ {calculatePrice(2).valorParcela.toFixed(2).replace('.', ',')} (com juros)
+                          </option>
+                        </select>
+                        <p className="text-xs text-gray-500 mt-1">
+                          * Taxas de cartão aplicadas ao valor total
+                        </p>
+                      </div>
+                    )}
 
                     {/* Valor Total */}
                     <div className="bg-orange-100 p-4 rounded-lg border border-orange-200">
@@ -1096,6 +1123,11 @@ function App() {
                         <div className="text-2xl font-bold text-orange-900">
                           R$ {valorTotal.toFixed(2).replace('.', ',')}
                         </div>
+                        {formData.paymentMethod === 'credit' && formData.installments > 1 && (
+                          <div className="text-sm text-orange-700 mt-1">
+                            {formData.installments}x de R$ {valorParcela.toFixed(2).replace('.', ',')}
+                          </div>
+                        )}
                         {formData.paymentMethod === 'credit' && (
                           <div className="text-xs text-orange-600 mt-1">(inclui taxas do cartão)</div>
                         )}
