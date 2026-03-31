@@ -345,7 +345,7 @@ function App() {
     setIsProcessing(true);
 
     try {
-      const response = await fetch('https://webhook.escolaamadeus.com/webhook/amadeus-pascoaF1', {
+      const response = await fetch('https://n8n.escolaamadeus.com/webhook-test/amadeuseventos', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
